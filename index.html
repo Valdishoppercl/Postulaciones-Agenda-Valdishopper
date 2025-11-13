@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Horario App Valdishopper</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    // Envía el id_token al Web App para registrar el acceso
+    function logAccess(idToken) {
+      const url = 'https://script.google.com/a/macros/valdishopper.com/s/AKfycbw0Q8kY9-eSJt_qiLeyLBeXYIxDKp4sZwFGsk5Zu8DgpDKkhnRDHVD3TLCb5FgajHHs/exec';
+      const payload = JSON.stringify({ id_token: idToken });
+
+      // 1) Intenta con sendBeacon (robusto y no bloqueante)
+      try {
+        const ok = navigator.sendBeacon(
+          url,
+          new Blob([payload], { type: 'text/plain' })
+        );
+        if (ok) return;
+      } catch (_) {}
+
+      // 2) Fallback con fetch (no-cors)
+      fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      }).catch(e => console.warn('No se pudo registrar el acceso:', e));
+    }
+
+    // Callback de Google Sign-In
+    function handleCredentialResponse(response) {
+      const token = response.credential;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const email = payload.email;
+      const hd    = payload.hd; // dominio (hosted domain)
+
+      if (email && email.endsWith('@valdishopper.com') && hd === 'valdishopper.com') {
+        document.getElementById("login").style.display = "none";
+        document.getElementById("contenido").style.display = "block";
+
+        // Registrar acceso
+        logAccess(token);
+      } else {
+        document.getElementById("login").innerHTML = `
+          <h2>Acceso denegado</h2>
+          <p>Solo usuarios con cuenta @valdishopper.com pueden acceder a este informe.</p>
+        `;
+      }
+    }
+  </script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+    }
+    #login {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 12px;
+    }
+    #contenido {
+      display: none;
+      width: 100%;
+      height: 100vh;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="login">
+    <h2>Inicia sesión con tu correo Valdishopper</h2>
+    <div id="g_id_onload"
+      data-client_id="604540812527-sntcf71p4is92msulnhdd24qm6a0itog.apps.googleusercontent.com"
+      data-callback="handleCredentialResponse"
+      data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+      data-type="standard"
+      data-size="large"
+      data-theme="outline"
+      data-text="sign_in_with"
+      data-shape="rectangular"
+      data-logo_alignment="left">
+    </div>
+  </div>
+
+  <div id="contenido">
+    <iframe
+      title="Postulaciones - Agenda"
+      src="https://app.powerbi.com/view?r=eyJrIjoiMTdmMjEyYTktNWJmZS00ZGE4LTg0YmMtOTAxMDg0YmYwNTU1IiwidCI6ImExYTBlYjdmLWI2OWMtNDM2My1hMjNkLTg3ZjZiY2U5YmIwYSJ9"
+      allowfullscreen>
+    </iframe>
+  </div>
+</body>
+</html>
